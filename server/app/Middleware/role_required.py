@@ -1,5 +1,3 @@
-# app/Middleware/role_required.py
-
 from functools import wraps
 from flask_jwt_extended import verify_jwt_in_request, get_jwt
 from flask import jsonify
@@ -7,8 +5,8 @@ from app.Domain.enums.role import Role
 
 def role_required(*roles: Role):
     """
-    Dekorator za kontrolu pristupa na osnovu role.
-    U JWT-u se očekuje polje "role" koje dolazi iz tokena.
+    Decorator for role-based access control.
+    A "role" field coming from the token is expected in the JWT.
     """
     def wrapper(fn):
         @wraps(fn)

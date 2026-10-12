@@ -11,15 +11,15 @@ class AuthResult:
 class AuthService:
     def login(self, user: User | None, password: str):
         
-        #ako user ne postoji
+        # User doesn't exist
         if user is None:
             return AuthResult.INVALID_CREDENTIALS, None
         
-        #ako je user blokiran
+        # User is blocked
         if user.blocked_until and user.blocked_until > datetime.utcnow():
             return AuthResult.BLOCKED, None
         
-        #pogresna lozinka
+        # Wrong password
         if not user.verify_password(password):
             user.failed_attempts += 1
 

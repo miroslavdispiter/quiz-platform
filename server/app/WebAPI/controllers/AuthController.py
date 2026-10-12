@@ -1,35 +1,31 @@
 from flask import Blueprint, jsonify, request
 from app.Services.AuthService import AuthService, AuthResult
-
 from app.Domain.models.User import User
-from app.Domain.enums.role import Role
-from app.Extensions.bcrypt import bcrypt
+from app.WebAPI.validation.AuthValidation import AuthValidation
 
 auth_bp = Blueprint("auth", __name__)
 authService = AuthService()
 
 
-@auth_bp.route("/login", methods = ["POST"])
-
+@auth_bp.route("/login", methods=["POST"])
 def login():
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
-    print("LOGIN DATA:", data)
+    error = AuthValidation.validate_login_data(data)
+    if error:
+        return error
 
-    email = data.get("email")
-    password = data.get("password")
+    email = data["email"].strip()
+    password = data["password"]
 
-    if not email or not password:
-        return jsonify({"message": "Email or password are required"}), 400
-    
     user = User.query.filter_by(email=email).first()
-    
+
     result, token = authService.login(user, password)
 
     if result == AuthResult.BLOCKED:
         return jsonify({"message": "Account is temporarily blocked"}), 403
-    
+
     if result == AuthResult.INVALID_CREDENTIALS:
         return jsonify({"message": "Invalid credentials"}), 401
-    
-    return jsonify(access_token = token), 200
+
+    return jsonify(access_token=token), 200
