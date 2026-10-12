@@ -26,7 +26,7 @@ redis_client = redis.Redis(
     retry=Retry(NoBackoff(), 0),  # bez ponovnih pokusaja: ako Redis ne radi, odmah idemo na MongoDB
 ) if REDIS_HOST else None
 
-#pomocna funkcija za brisanje kesa
+# AUXILIARY FUNCTION FOR CLEARING THE CACHE
 def clear_quiz_cache():
     if redis_client is None:
         return
@@ -35,7 +35,7 @@ def clear_quiz_cache():
     except Exception as e:
         print(f"Redis error: {e}")
 
-#kreirnaje kviza (moderatro)
+# CREATE QUIZ
 @quiz_db.route("/", methods=["POST"])
 def create_quiz():
     data = request.get_json(silent=True) or {}
@@ -90,11 +90,11 @@ def create_quiz():
 
     return jsonify({"message": "Quiz created and pending approval", "id": str(result.inserted_id)}), 201
 
-#promjena statusa kviza
+# QUIZ STATUS CHANGE
 @quiz_db.route("/<quiz_id>/status", methods=["PATCH"])
 def update_quiz_status(quiz_id):
     data = request.json
-    new_status = data.get("status") #approved ili rejected
+    new_status = data.get("status") # Approved or Rejected
     reason = data.get("rejection_reason", "")
 
     update_data = {"status": new_status}
@@ -109,11 +109,11 @@ def update_quiz_status(quiz_id):
     if result.matched_count == 0:
         return jsonify({"message": "Quiz not found"}), 404
     
-    clear_quiz_cache() #brisemo kes posto se status promijenio
+    clear_quiz_cache() # We delete the cache because the status has changed
     
     return jsonify({"message": f"Quiz status updated to {new_status}"}), 200
 
-#listanje svih kvizova
+# LISTING ALL QUIZZES
 @quiz_db.route("/", methods=["GET"])
 def get_quizzes():
     quizzes = list(collection.find())
@@ -121,7 +121,7 @@ def get_quizzes():
         q['_id'] = str(q['_id'])
     return jsonify(quizzes), 200
 
-#listanje samo odobrenih kvizova
+# LISTING ONLY APPROVED QUIZZES
 @quiz_db.route("/published", methods=["GET"])
 def get_published_quizzes():
     #prvo probamo iz kesa
@@ -134,7 +134,7 @@ def get_published_quizzes():
         except Exception as e:
             print(f"Redis error (hit): {e}")
 
-    #ako nema u kesu uzimamo iz mognoDB
+    # If it's not in the cache, we take it from MognoDB
     print("CACHE MISS: MongoDB data")
     quizzes = list(collection.find({"status": "APPROVED"}))
 
@@ -143,7 +143,7 @@ def get_published_quizzes():
         for question in q.get('questions', []):
             question.pop("correct_answers", None)
             
-    #sacuvaj rezultat u redis na svakih 5 min
+    # Save the result to redis every 5min
     if redis_client is not None:
         try:
             redis_client.setex("published_quizzes", 300, json.dumps(quizzes))
@@ -152,7 +152,7 @@ def get_published_quizzes():
         
     return jsonify(quizzes), 200
 
-#pokretanje procesa
+# Initiating the process
 def process_quick_task(quiz_data, user_answers, user_email, time_spent):
     print(f"Asynchronous processing started for {user_email}...")
     time.sleep(10)  
@@ -214,7 +214,7 @@ def process_quick_task(quiz_data, user_answers, user_email, time_spent):
 
     except Exception as e:
         print(f"Error saving result to main server: {e}")
-#slanje odgovora i racunanje bodova
+# SENDING ANSWERS AND CALCULATING POINTS
 @quiz_db.route("/<quiz_id>/submit", methods=["POST"])
 def submit_quiz(quiz_id):
     data = request.json
@@ -237,7 +237,7 @@ def submit_quiz(quiz_id):
         "status": "processing"
     }), 202
     
-#brisanje kviza
+# QUIZ DELETE
 @quiz_db.route("/<quiz_id>", methods=["DELETE"])
 def delete_quiz(quiz_id):
     data = request.get_json() or {}
@@ -253,12 +253,12 @@ def delete_quiz(quiz_id):
 
     collection.delete_one({"_id": ObjectId(quiz_id)})
 
-    #brisemo kes
+    # CACHE DELETE
     clear_quiz_cache()
 
     return jsonify({"status": "deleted"}), 200
 
-# dobijanje samo jednog kviza
+# GETTING ONLY ONE QUIZ
 @quiz_db.route("/<quiz_id>", methods=["GET"])
 def get_quiz_by_id(quiz_id):
     try:
@@ -268,7 +268,7 @@ def get_quiz_by_id(quiz_id):
         
         quiz['_id'] = str(quiz['_id'])
         
-        # igrac ne smije da vidi tacne odgovore prije nego sto preda kviz
+        # The player must not see the correct answers before submitting the quiz
         if 'questions' in quiz:
             for q in quiz['questions']:
                 q.pop('correct_answers', None)

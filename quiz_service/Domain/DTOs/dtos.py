@@ -12,11 +12,11 @@ class QuestionDTO:
 class QuizDTO:
     title: str
     author_id: int
-    duration: int #u sekundama
+    duration: int # IN SECONDS
     questions: List[QuestionDTO]
     status: str = "PENDING"
     rejection_reason: Optional[str] = None
 
+    # MAP
     def to_disc(self):
-        #DTO u format koji razumije MongoDB
         return asdict(self)
