@@ -12,7 +12,7 @@ user_bp = Blueprint("users", __name__)
 user_service = UserService()
 email_sender = EmailSender()
 
-# CREATE
+# CREATE USER
 @user_bp.route("/register", methods=["POST"])
 def create_user():
     data = request.get_json()
@@ -35,7 +35,7 @@ def create_user():
         "access_token": token
     }), 201
 
-# DELETE
+# DELETE USER
 @user_bp.route("/delete/<int:user_id>", methods=["DELETE"])
 @jwt_required()
 @role_required(Role.ADMIN)
@@ -96,29 +96,6 @@ def upload_profile_image():
         return jsonify(result), status
     except Exception as e:
         return jsonify({"error": str(e), "success": False}), 500
-        
-# UPDATE PROFILE BY ID
-@user_bp.route("/update_profile/<int:user_id>", methods=["PUT"])
-@jwt_required()
-@role_required(Role.PLAYER, Role.MODERATOR)
-def update_user_profile(user_id):
-    current_user_id = int(get_jwt_identity())
-
-    if current_user_id != user_id:
-        return jsonify({"error": "You can only update your own profile"}), 403
-
-    data = request.get_json()
-
-    error = UserValidation.validate_profile_update_data(data)
-    if error:
-        return error
-
-    dto, status = user_service.update_user_profile(user_id, data)
-
-    if not dto:
-        return jsonify({"error": f"User with id {user_id} not found"}), status
-
-    return jsonify(asdict(dto)), status
 
 # CHANGE ROLE
 @user_bp.route("/change_role/<int:user_id>", methods=["PUT"])
@@ -139,7 +116,7 @@ def change_user_role(user_id):
     if not dto:
         return jsonify({"error": f"User with id {user_id} not found"}), status
 
-    #slanje mejla
+    # SENDING MAIL
     try:
         user_email = dto.email
         full_name = f"{dto.first_name} {dto.last_name}"
@@ -173,7 +150,7 @@ def get_all_users():
     dto, status = user_service.get_all_users()
     return jsonify(asdict(dto)), status
 
-# DOHVAT ZA PRIKAZ NA UI
+# UI DISPLAY FETCH
 @user_bp.route("/profile-image/<int:user_id>", methods=["GET"])
 def get_profile_image(user_id):
     dto, status = user_service.get_user_by_id(user_id)

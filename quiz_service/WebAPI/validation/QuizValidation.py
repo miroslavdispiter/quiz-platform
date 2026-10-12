@@ -21,7 +21,7 @@ class QuizValidation:
     MAX_POINTS = 100
     
     VALID_STATUSES = ["APPROVED", "REJECTED"]
-    EMAIL_REGEX = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+    EMAIL_REGEX = r"^[\w\.+-]+@[\w\.-]+\.\w+$"  # dozvoljen i "+" (npr. ime+igrac@gmail.com)
 
     @staticmethod
     def validate_quiz_creation(data: dict) -> Optional[Tuple]:

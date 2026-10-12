@@ -8,6 +8,7 @@ class UserCreatedDTO:
     role: Role
     created_at: str
 
+    # MAP
     @staticmethod
     def from_model(user) -> "UserCreatedDTO":
         return UserCreatedDTO(

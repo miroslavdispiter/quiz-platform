@@ -10,6 +10,7 @@ class UserSummaryDTO:
     country: str
     created_at: str
 
+    # MAP
     @staticmethod
     def from_model(user) -> "UserSummaryDTO":
         return UserSummaryDTO(

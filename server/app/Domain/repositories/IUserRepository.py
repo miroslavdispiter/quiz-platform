@@ -6,35 +6,35 @@ class IUserRepository(ABC):
     
     @abstractmethod
     def get_all(self) -> List[User]:
-        """Vraca sve korisnike"""
+        """Returns all users."""
         pass
     
     @abstractmethod
     def get_by_id(self, user_id: int) -> Optional[User]:
-        """Vraca korisnika po ID-u"""
+        """Returns users by ID"""
         pass
     
     @abstractmethod
     def get_by_email(self, email: str) -> Optional[User]:
-        """Vraca korisnika po email-u"""
+        """Returns a user by email."""
         pass
     
     @abstractmethod
     def create(self, user: User) -> User:
-        """Kreira novog korisnika"""
+        """Creates a new user"""
         pass
     
     @abstractmethod
     def update(self, user: User) -> User:
-        """Azurira korisnika"""
+        """Updates the user"""
         pass
     
     @abstractmethod
     def delete(self, user_id: int) -> bool:
-        """Brise korisnika"""
+        """Deletes the user"""
         pass
     
     @abstractmethod
     def save(self) -> None:
-        """Cuva promene u bazi"""
+        """Saves changes to the database."""
         pass

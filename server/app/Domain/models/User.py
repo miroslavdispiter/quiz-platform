@@ -18,7 +18,7 @@ class User(db.Model):
 
     country = db.Column(db.String(60), nullable=False)
     street = db.Column(db.String(100), nullable=False)
-    street_number = db.Column(db.String(20), nullable=False) # ovo mozda treba biti broj telefona
+    street_number = db.Column(db.String(20), nullable=False)
 
     role = db.Column(db.Enum(Role), default=Role.PLAYER, nullable=False)
     profile_image = db.Column(db.String(255), nullable=True)

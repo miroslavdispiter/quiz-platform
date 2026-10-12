@@ -66,6 +66,9 @@ class UserService:
             if f in data and data[f]:
                 setattr(user, f, data[f])
 
+        if "date_of_birth" in data and data["date_of_birth"]:
+            user.date_of_birth = datetime.strptime(data["date_of_birth"], "%Y-%m-%d").date()
+
         if "password" in data and data["password"]:
             user.password_hash = bcrypt.generate_password_hash(data["password"]).decode("utf-8")
 
@@ -113,7 +116,7 @@ class UserService:
         os.makedirs(folder, exist_ok=True)
         filepath = os.path.join(folder, filename)
 
-        # Lokalno za sad, pa cemo posle da kacimo na cloud storage
+        # LOCALLY FOR NOW
         file.save(filepath)
 
         user.profile_image = filepath

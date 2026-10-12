@@ -5,8 +5,8 @@ import os
 
 class EmailSender:
     def __init__(self):
-        self.smtp_host = "smtp.gmail.com"
-        self.smtp_port = 587
+        self.smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+        self.smtp_port = int(os.getenv("SMTP_PORT", 587))
         self.email_user = os.getenv("EMAIL_USER")
         self.email_pass = os.getenv("EMAIL_PASS")
         self.email_from = os.getenv("EMAIL_FROM", self.email_user)
@@ -14,16 +14,16 @@ class EmailSender:
     def send_role_change_email(self, to_email: str, new_role: str, full_name: str):
         
         """
-        Šalje obaveštenje korisniku da mu je promenjena uloga.
+        Sends a notification to the user that his role has been changed.
         """
 
         subject = "Promjena uloge na platformi"
         body = (
-            f"Poštovani {full_name},<br><br>"
-            f"Administrator ti je upravo promijenio ulogu na platformi. "
-            f"Nova uloga: <b>{new_role}</b>.<br><br>"
-            f"Sada imaš pristup funkcijama koje odgovaraju toj ulozi.<br>"
-            f"<br>Srdačan pozdrav,<br>DRS tim"
+            f"Dear {full_name},<br><br>"
+            f"The administrator has just changed your role on the platform. "
+            f"New role: <b>{new_role}</b>.<br><br>"
+            f"You now have access to the features that match that role.<br>"
+            f"<br>Best regards,<br>Quiz Platform Team"
         )
 
         msg = MIMEMultipart("alternative")

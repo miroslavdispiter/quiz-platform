@@ -9,7 +9,7 @@ class QuizProxyValidation:
     """
 
     OBJECT_ID_REGEX = r'^[a-fA-F0-9]{24}$'
-    EMAIL_REGEX = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+    EMAIL_REGEX = r"^[\w\.+-]+@[\w\.-]+\.\w+$"  # dozvoljen i "+" (npr. ime+igrac@gmail.com)
     VALID_STATUSES = ["APPROVED", "REJECTED"]
 
     MIN_REJECTION_REASON_LENGTH = 5

@@ -16,6 +16,7 @@ interface FormData {
   lastName: string;
   email: string;
   password: string;
+  dateOfBirth: string;
   gender: string;
   country: string;
   street: string;
@@ -34,6 +35,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
     lastName: user.lastName || "",
     email: user.email || "",
     password: "",
+    dateOfBirth: user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : "",
     gender: user.gender || "",
     country: user.country || "",
     street: user.street || "",
@@ -60,6 +62,7 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
       first_name: formData.firstName,
       last_name: formData.lastName,
       email: formData.email,
+      date_of_birth: formData.dateOfBirth,
       gender: formData.gender,
       country: formData.country,
       street: formData.street,
@@ -174,6 +177,19 @@ export const ProfileEditForm: React.FC<ProfileEditFormProps> = ({
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
+          </div>
+
+          {/* Date of Birth */}
+          <div>
+            <label className={labelClass}>Date of Birth</label>
+            <input
+              type="date"
+              name="dateOfBirth"
+              value={formData.dateOfBirth}
+              onChange={handleChange}
+              max={new Date().toISOString().split("T")[0]}
+              className={inputClass}
+            />
           </div>
 
           {/* Gender */}

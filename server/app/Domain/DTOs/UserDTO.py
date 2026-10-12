@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import date
 from typing import Optional
 from app.Domain.enums.role import Role
 
@@ -9,7 +8,7 @@ class UserDTO:
     first_name: str
     last_name: str
     email: str
-    date_of_birth: date
+    date_of_birth: Optional[str]  # "YYYY-MM-DD"
     gender: str
     country: str
     street: str
@@ -19,6 +18,7 @@ class UserDTO:
     created_at: str
     updated_at: Optional[str]
 
+    # MAP
     @staticmethod
     def from_model(user) -> "UserDTO":
         return UserDTO(
@@ -26,7 +26,7 @@ class UserDTO:
             first_name=user.first_name,
             last_name=user.last_name,
             email=user.email,
-            date_of_birth=user.date_of_birth,
+            date_of_birth=user.date_of_birth.isoformat() if user.date_of_birth else None,
             gender=user.gender,
             country=user.country,
             street=user.street,

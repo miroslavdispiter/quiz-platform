@@ -8,7 +8,7 @@ class AuthValidation:
     Returns None if everything is OK, otherwise tuple (response, status_code).
     """
 
-    EMAIL_REGEX = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+    EMAIL_REGEX = r"^[\w\.+-]+@[\w\.-]+\.\w+$"  # dozvoljen i "+" (npr. ime+igrac@gmail.com)
     MAX_EMAIL_LENGTH = 120
     MAX_PASSWORD_LENGTH = 128
 
