@@ -10,16 +10,26 @@ from multiprocessing import Process
 from Extensions.EmailSender import EmailSender
 import json
 import redis
+from redis.retry import Retry
+from redis.backoff import NoBackoff
 
 
 quiz_db = Blueprint("quiz_db", __name__)
 collection = db_mongo.get_collection("quizzes")
 email_sender = EmailSender()
 
-redis_client = redis.Redis(host=os.getenv("REDIS_HOST", "redis_cache"), port=6379, db=0, decode_responses=True)
+# Redis je opcion: ako REDIS_HOST nije postavljen, kes se preskace i sve ide direktno iz MongoDB-a
+REDIS_HOST = os.getenv("REDIS_HOST")
+redis_client = redis.Redis(
+    host=REDIS_HOST, port=int(os.getenv("REDIS_PORT", 6379)), db=0, decode_responses=True,
+    socket_connect_timeout=1, socket_timeout=1,
+    retry=Retry(NoBackoff(), 0),  # bez ponovnih pokusaja: ako Redis ne radi, odmah idemo na MongoDB
+) if REDIS_HOST else None
 
 #pomocna funkcija za brisanje kesa
 def clear_quiz_cache():
+    if redis_client is None:
+        return
     try:
         redis_client.delete("published_quizzes")
     except Exception as e:
@@ -115,13 +125,14 @@ def get_quizzes():
 @quiz_db.route("/published", methods=["GET"])
 def get_published_quizzes():
     #prvo probamo iz kesa
-    try:
-        cached_quizzes = redis_client.get("published_quizzes")
-        if cached_quizzes:
-            print("CACHE HIT: redis data")
-            return jsonify(json.loads(cached_quizzes)), 200
-    except Exception as e:
-        print(f"Redis error (hit): {e}")
+    if redis_client is not None:
+        try:
+            cached_quizzes = redis_client.get("published_quizzes")
+            if cached_quizzes:
+                print("CACHE HIT: redis data")
+                return jsonify(json.loads(cached_quizzes)), 200
+        except Exception as e:
+            print(f"Redis error (hit): {e}")
 
     #ako nema u kesu uzimamo iz mognoDB
     print("CACHE MISS: MongoDB data")
@@ -133,10 +144,11 @@ def get_published_quizzes():
             question.pop("correct_answers", None)
             
     #sacuvaj rezultat u redis na svakih 5 min
-    try:
-        redis_client.setex("published_quizzes", 300, json.dumps(quizzes))
-    except Exception as e:
-        print(f"Redis error (set): {e}")
+    if redis_client is not None:
+        try:
+            redis_client.setex("published_quizzes", 300, json.dumps(quizzes))
+        except Exception as e:
+            print(f"Redis error (set): {e}")
         
     return jsonify(quizzes), 200
 

@@ -18,4 +18,4 @@ if __name__ == "__main__":
     app = create_quiz_app()
     port = int(os.getenv("SERVER_PORT", 5001))
     print(f"Quiz Service pokrenut na portu {port}")
-    app.run(debug=True, port=port, host='0.0.0.0')
+    app.run(debug=True, port=port)

@@ -14,10 +14,10 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "secretkey")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jwtsecretkey")
 
-    DB_HOST = os.getenv("DB_HOST", "mysql_db")
+    DB_HOST = os.getenv("DB_HOST", "localhost")
     DB_PORT = os.getenv("DB_PORT", "3306")
     DB_USER = os.getenv("DB_USER", "root")
-    DB_PASSWORD = os.getenv("DB_PASSWORD", "1234")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
     DB_NAME = os.getenv("DB_NAME", "drs_db")
 
     password = quote_plus(DB_PASSWORD)
