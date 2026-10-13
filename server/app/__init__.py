@@ -5,8 +5,10 @@ from flask_cors import CORS
 from app.Extensions.bcrypt import bcrypt
 from app.config import Config
 from app.Extensions.socketio_ext import socketio
+from app.Sockets import socket_events  # registers the WebSocket "connect" handler
 from app.WebAPI.controllers.AuthController import auth_bp
 from app.WebAPI.controllers.UserController import user_bp
+from app.WebAPI.controllers.QuizController import quiz_bp
 
 jwt = JWTManager()
 
@@ -29,10 +31,10 @@ def create_app():
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(user_bp, url_prefix="/api/users")
+    app.register_blueprint(quiz_bp, url_prefix="/api/quizzes")
 
     @app.get("/")
     def home():
         return {"status": "ok", "service": "drs server"}
 
     return app
-

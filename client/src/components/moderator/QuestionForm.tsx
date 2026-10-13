@@ -13,18 +13,24 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({ question, index, onU
   const handleTextChange = (text: string) => onUpdate(index, { ...question, text });
   const handlePointsChange = (points: number) => onUpdate(index, { ...question, points });
 
+  // Correct answers are stored as option texts, so when an option text changes
+  // (or the option is deleted) the correct answers must change too.
   const handleOptionChange = (i: number, value: string) => {
+    const oldValue = question.options[i];
     const newOpts = [...question.options];
     newOpts[i] = value;
-    onUpdate(index, { ...question, options: newOpts });
+    const newCorrect = question.correct_answers.map((a) => (a === oldValue ? value : a));
+    onUpdate(index, { ...question, options: newOpts, correct_answers: newCorrect });
   };
 
   const handleAddOption = () =>
-    onUpdate(index, { ...question, options: [...question.options, "" ] });
+    onUpdate(index, { ...question, options: [...question.options, ""] });
 
   const handleDeleteOption = (i: number) => {
+    const removed = question.options[i];
     const newOpts = question.options.filter((_, idx) => idx !== i);
-    onUpdate(index, { ...question, options: newOpts });
+    const newCorrect = question.correct_answers.filter((a) => a !== removed);
+    onUpdate(index, { ...question, options: newOpts, correct_answers: newCorrect });
   };
 
   const toggleCorrect = (optionText: string) => {
@@ -57,13 +63,16 @@ export const QuestionForm: React.FC<QuestionFormProps> = ({ question, index, onU
       />
 
       <div className="mb-3">
-        <label className="block text-sm font-medium text-gray-600 mb-1">Options</label>
+        <label className="block text-sm font-medium text-gray-600 mb-1">
+          Options <span className="text-gray-400 font-normal">(check the correct ones)</span>
+        </label>
         {question.options.map((opt, i) => (
           <div key={i} className="flex items-center gap-2 mb-1">
             <input
               type="checkbox"
-              checked={question.correct_answers.includes(opt)}
+              checked={opt !== "" && question.correct_answers.includes(opt)}
               onChange={() => toggleCorrect(opt)}
+              disabled={opt.trim() === ""}
               className="accent-violet-500"
             />
             <OptionInput value={opt} index={i} onChange={handleOptionChange} onDelete={handleDeleteOption} />

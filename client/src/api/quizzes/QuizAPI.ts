@@ -1,92 +1,80 @@
-import type { IQuizAPI, QuizCreateDTO, QuizCreatedResponse } from "./IQuizAPI";
+import type {
+  AnswerInput,
+  IQuizAPI,
+  Quiz,
+  QuizInput,
+  QuizSummary,
+  SubmitResponse,
+} from "./IQuizAPI";
 
+// All quiz requests go to the MAIN SERVER, which forwards them to the Quiz Service.
 const BASE_URL = import.meta.env.VITE_API_URL;
 
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = localStorage.getItem("access_token");
+
+  const response = await fetch(`${BASE_URL}/quizzes${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token ? `Bearer ${token}` : "",
+    },
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    // Our services return {"error": "..."}, flask-jwt-extended returns {"msg": "..."}
+    throw new Error(data?.error || data?.message || data?.msg || `Request failed (${response.status})`);
+  }
+
+  return data as T;
+}
+
 export class QuizAPI implements IQuizAPI {
-  async createQuiz(data: QuizCreateDTO): Promise<QuizCreatedResponse> {
-    const QUIZ_SERVICE_URL = "http://localhost:5001/api/quizzes";
-    const response = await fetch(`${QUIZ_SERVICE_URL}/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Failed to create quiz (${response.status}): ${errText}`);
-    }
-
-    return await response.json();
+  createQuiz(data: QuizInput): Promise<Quiz> {
+    return request<Quiz>("/", { method: "POST", body: JSON.stringify(data) });
   }
 
-  async getQuizById(quizId: string): Promise<any> {
-    const token = localStorage.getItem("access_token");
-    const response = await fetch(`${BASE_URL}/quizzes/${quizId}`, {
-      headers: { Authorization: token ? `Bearer ${token}` : "" },
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Failed to load quiz (${response.status}): ${errText}`);
-    }
-
-    return await response.json();
-  }
-
-  async getAllQuizzes(): Promise<any[]> {
-    const token = localStorage.getItem("access_token");
-    const response = await fetch(`${BASE_URL}/quizzes/`, {
-      headers: { Authorization: token ? `Bearer ${token}` : "" },
-    });
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Failed to fetch quizzes (${response.status}): ${errText}`);
-    }
-    return await response.json();
-  }
-
-  async reviewQuiz(
-    quizId: string,
-    status: "APPROVED" | "REJECTED",
-    rejection_reason?: string
-  ) {
-    const token = localStorage.getItem("access_token");
-    const response = await fetch(`${BASE_URL}/quizzes/${quizId}/review`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-      body: JSON.stringify({ status, rejection_reason }),
-    });
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Failed to update status: ${text}`);
-    }
-    return response.json();
-  }
-
-  async getApprovedQuizzes(): Promise<any[]> {
-    const response = await fetch(`http://localhost:5001/api/quizzes/published`, {
-      headers: { "Content-Type": "application/json" },
-    });
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Failed to load quizzes (${response.status}): ${text}`);
-    }
-    return response.json();
+  updateQuiz(quizId: string, data: QuizInput): Promise<Quiz> {
+    return request<Quiz>(`/${quizId}`, { method: "PUT", body: JSON.stringify(data) });
   }
 
   async deleteQuiz(quizId: string): Promise<void> {
-    const token = localStorage.getItem("access_token");
-    const response = await fetch(`${BASE_URL}/quizzes/${quizId}`, {
-      method: "DELETE",
-      headers: { Authorization: token ? `Bearer ${token}` : "" },
+    await request(`/${quizId}`, { method: "DELETE" });
+  }
+
+  // Admin - all quizzes
+  getAllQuizzes(): Promise<QuizSummary[]> {
+    return request<QuizSummary[]>("/");
+  }
+
+  // Moderator - only his quizzes
+  getMyQuizzes(): Promise<QuizSummary[]> {
+    return request<QuizSummary[]>("/mine");
+  }
+
+  // Players - only approved quizzes
+  getApprovedQuizzes(): Promise<QuizSummary[]> {
+    return request<QuizSummary[]>("/published");
+  }
+
+  getQuizById(quizId: string): Promise<Quiz> {
+    return request<Quiz>(`/${quizId}`);
+  }
+
+  reviewQuiz(quizId: string, status: "APPROVED" | "REJECTED", rejection_reason?: string): Promise<Quiz> {
+    return request<Quiz>(`/${quizId}/review`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, rejection_reason }),
     });
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Failed to delete quiz (${response.status}): ${text}`);
-    }
+  }
+
+  submitAnswers(quizId: string, answers: AnswerInput[], timeSpent: number): Promise<SubmitResponse> {
+    return request<SubmitResponse>(`/${quizId}/submit`, {
+      method: "POST",
+      body: JSON.stringify({ answers, time_spent: timeSpent }),
+    });
   }
 }
 

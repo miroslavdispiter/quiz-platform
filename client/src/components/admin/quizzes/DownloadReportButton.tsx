@@ -1,17 +1,10 @@
 import React from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import type { QuizSummary } from "../../../api/quizzes/IQuizAPI";
 
-interface QuizReportItem {
-  title: string;
-  author_id: string;
-  status: string;
-  duration: number;
-  questions?: any[];      
-  created_at?: string;
-}
 interface Props {
-  quizzes: QuizReportItem[];
+  quizzes: QuizSummary[];
 }
 
 const formatDate = (dateString?: string) => {
@@ -28,7 +21,8 @@ const formatDate = (dateString?: string) => {
   }
 };
 
-    const DownloadReportButton: React.FC<Props> = ({ quizzes }) => {  const handleDownload = () => {
+const DownloadReportButton: React.FC<Props> = ({ quizzes }) => {
+  const handleDownload = () => {
     const doc = new jsPDF();
     const date = new Date().toISOString().split("T")[0];
 
@@ -39,9 +33,9 @@ const formatDate = (dateString?: string) => {
 
     const tableData = quizzes.map((q) => [
       q.title,
-      q.author_id,
+      q.author_name,
       q.status,
-      q.questions?.length || 0,
+      q.question_count,
       q.duration + "s",
       formatDate(q.created_at),
     ]);

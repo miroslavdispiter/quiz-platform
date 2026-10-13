@@ -3,9 +3,9 @@ const BASE_URL = import.meta.env.VITE_API_URL;
 export interface LeaderboardEntry {
   user_id: number;
   full_name: string;
-  email: string;
   score: number;
-  time_spent: number;
+  max_score: number;
+  time_spent: number; // seconds
 }
 
 export class LeaderboardAPI {

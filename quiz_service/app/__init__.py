@@ -1,37 +1,14 @@
-from typing import Any
-
 from flask import Flask
-
-from app.config import Config, validate_config
-from app.extensions.mongo import mongo
-from app.logging_config import configure_logging
-from app.web_api.controllers.attempt_controller import attempt_bp
-from app.web_api.controllers.health_controller import health_bp
-from app.web_api.controllers.quiz_controller import quiz_bp
-from app.web_api.error_handlers import register_error_handlers
+from app.Middleware.internal_auth import check_internal_key
+from app.WebAPI.controllers.QuizController import quiz_bp
 
 
-def create_app(config_class: type[Config] = Config, overrides: dict[str, Any] | None = None) -> Flask:
-    """
-    Application factory for the Quiz Service.
-    `overrides` lets tests change single settings without touching .env.
-    """
+def create_app():
     app = Flask(__name__)
-    app.config.from_object(config_class)
-    if overrides:
-        app.config.update(overrides)
-    validate_config(app.config)
 
-    configure_logging(app.config["LOG_LEVEL"])
+    # Every request must come from the main server (X-Internal-Key header)
+    app.before_request(check_internal_key)
 
-    # Extensions
-    mongo.init_app(app)
-    # TODO (celina 2): create MongoDB indexes on startup (app/database/indexes.py).
-
-    # Web layer
-    register_error_handlers(app)
-    app.register_blueprint(health_bp)
-    app.register_blueprint(quiz_bp, url_prefix="/api/quizzes")
-    app.register_blueprint(attempt_bp, url_prefix="/api/attempts")
+    app.register_blueprint(quiz_bp, url_prefix="/quizzes")
 
     return app

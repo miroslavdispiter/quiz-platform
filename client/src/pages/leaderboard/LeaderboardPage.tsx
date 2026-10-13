@@ -11,18 +11,11 @@ const LeaderboardPage: React.FC = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        setLoading(true);
-        const data = await leaderboardAPI.getLeaderboard(quizId!);
-        setEntries(data);
-      } catch (err: any) {
-        setError(err.message || "Failed to load leaderboard");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchLeaderboard();
+    leaderboardAPI
+      .getLeaderboard(quizId!)
+      .then((data) => setEntries(data))
+      .catch((err: Error) => setError(err.message || "Failed to load leaderboard"))
+      .finally(() => setLoading(false));
   }, [quizId]);
 
   if (loading) return <LoadingSpinner message="Loading leaderboard..." />;
@@ -52,15 +45,15 @@ const LeaderboardPage: React.FC = () => {
               </thead>
               <tbody>
                 {entries.map((entry, idx) => (
-                  <tr 
-                    key={idx} 
+                  <tr
+                    key={idx}
                     className={`border-t transition-all ${idx === 0 ? 'bg-yellow-50/30' : 'hover:bg-gray-50'}`}
                   >
                     <td className="px-6 py-4">
                       <span className={`
                         flex items-center justify-center w-8 h-8 rounded-full font-bold
-                        ${idx === 0 ? 'bg-yellow-100 text-yellow-700' : 
-                          idx === 1 ? 'bg-slate-100 text-slate-700' : 
+                        ${idx === 0 ? 'bg-yellow-100 text-yellow-700' :
+                          idx === 1 ? 'bg-slate-100 text-slate-700' :
                           idx === 2 ? 'bg-orange-100 text-orange-700' : 'text-gray-500'}
                       `}>
                         {idx + 1}
@@ -68,13 +61,12 @@ const LeaderboardPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-medium text-gray-800">{entry.full_name}</div>
-                      <div className="text-xs text-gray-400">{entry.email}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-violet-700 font-bold">{entry.score} pts</span>
+                      <span className="text-violet-700 font-bold">{entry.score} / {entry.max_score} pts</span>
                     </td>
                     <td className="px-6 py-4 text-gray-600">
-                      {entry.time_spent ? `${entry.time_spent}s` : "--"}
+                      {entry.time_spent}s
                     </td>
                   </tr>
                 ))}

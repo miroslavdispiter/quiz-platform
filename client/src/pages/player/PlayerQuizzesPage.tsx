@@ -1,53 +1,53 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { quizAPI } from "../../api/quizzes/QuizAPI";
+import type { QuizSummary } from "../../api/quizzes/IQuizAPI";
 import { LoadingSpinner } from "../../components/ui/LoadingSpinner";
 import { ErrorAlert } from "../../components/ui/ErrorAlert";
-import { io } from "socket.io-client";
-
-const socket = io("http://localhost:5000");
-
-interface Quiz {
-  _id: string;
-  title: string;
-  author_id: string;
-  duration: number;
-  status: string;
-}
+import { SuccessAlert } from "../../components/ui/SuccessAlert";
+import { socketService, type QuizSocketEvent } from "../../services/socketService";
 
 const PlayerQuizzesPage: React.FC = () => {
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [quizzes, setQuizzes] = useState<QuizSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const navigate = useNavigate();
 
-  const loadQuizzes = async (isSilent = false) => {
+  // Reload the list (used after real-time events and after actions)
+  const loadQuizzes = useCallback(async () => {
     try {
-      if (!isSilent) setLoading(true);
       const data = await quizAPI.getApprovedQuizzes();
       setQuizzes(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to load quizzes");
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load quizzes");
     }
-  };
-
-  useEffect(() => {
-    loadQuizzes();
-
-    socket.on('quiz_published', (data) => {
-      console.log("Real-time update: New quiz published!", data);
-      loadQuizzes(true);
-    });
-
-    return () => {
-      socket.off('quiz_published');
-    };
   }, []);
 
+  useEffect(() => {
+    // First load
+    quizAPI
+      .getApprovedQuizzes()
+      .then((data) => setQuizzes(data))
+      .catch((err: Error) => setError(err.message || "Failed to load quizzes"))
+      .finally(() => setLoading(false));
+
+    // REAL TIME: admin approved a quiz -> it appears in the list without refreshing the page
+    const handlePublished = (data: QuizSocketEvent) => {
+      setInfo(data.message);
+      loadQuizzes();
+    };
+    const handleDeleted = () => loadQuizzes();
+
+    socketService.on("quiz_published", handlePublished);
+    socketService.on("quiz_deleted", handleDeleted);
+    return () => {
+      socketService.off("quiz_published", handlePublished);
+      socketService.off("quiz_deleted", handleDeleted);
+    };
+  }, [loadQuizzes]);
+
   if (loading) return <LoadingSpinner message="Loading quizzes..." />;
-  if (error) return <ErrorAlert message={error} onDismiss={() => setError("")} />;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50 to-indigo-50 px-6 py-12">
@@ -58,6 +58,9 @@ const PlayerQuizzesPage: React.FC = () => {
           </h1>
           <p className="text-gray-500 mt-2">Choose a quiz and test your knowledge</p>
         </div>
+
+        {error && <ErrorAlert message={error} onDismiss={() => setError("")} />}
+        {info && <SuccessAlert message={info} onDismiss={() => setInfo("")} />}
 
         {quizzes.length === 0 ? (
           <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-12 text-center border border-dashed border-gray-300">
@@ -74,7 +77,10 @@ const PlayerQuizzesPage: React.FC = () => {
                   <h2 className="text-xl font-semibold text-gray-800 mb-2">{quiz.title}</h2>
                   <div className="space-y-1">
                     <p className="text-sm text-gray-500">
-                      <span className="font-medium text-gray-700">Author ID:</span> {quiz.author_id}
+                      <span className="font-medium text-gray-700">Author:</span> {quiz.author_name}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      <span className="font-medium text-gray-700">Questions:</span> {quiz.question_count}
                     </p>
                     <p className="text-sm text-gray-500">
                       <span className="font-medium text-gray-700">Duration:</span> {quiz.duration}s
@@ -89,7 +95,7 @@ const PlayerQuizzesPage: React.FC = () => {
                   >
                     Play Quiz
                   </button>
-                  
+
                   <button
                     onClick={() => navigate(`/leaderboard/${quiz._id}`)}
                     className="w-full px-4 py-2 rounded-xl font-medium text-indigo-600 border border-indigo-100 bg-white hover:bg-indigo-50 hover:border-indigo-200 transition-all text-sm"
