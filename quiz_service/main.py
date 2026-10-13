@@ -1,21 +1,11 @@
-import os
-from flask import Flask
-from flask_cors import CORS
-from dotenv import load_dotenv
-from WebAPI.routes import quiz_db
+from app import create_app
+from app.config import Config
 
-load_dotenv()
-
-def create_quiz_app():
-    app = Flask(__name__)
-    CORS(app)
-
-    app.register_blueprint(quiz_db, url_prefix="/api/quizzes")
-
-    return app
-
+# The app is created only here, inside "if __name__ == '__main__'".
+# On Windows every new process (quiz processing) imports this file again,
+# and without this check every process would start the whole Flask server again.
 if __name__ == "__main__":
-    app = create_quiz_app()
-    port = int(os.getenv("SERVER_PORT", 5001))
-    print(f"Quiz Service pokrenut na portu {port}")
-    app.run(debug=True, port=port)
+    app = create_app()
+    print(f"Quiz Service started on port {Config.PORT}")
+    # 127.0.0.1 -> reachable only from this computer (the main server), not from the network
+    app.run(host="127.0.0.1", port=Config.PORT, debug=True)

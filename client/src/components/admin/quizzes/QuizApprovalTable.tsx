@@ -1,22 +1,13 @@
 import React, { useState } from "react";
 import { QuizStatusBadge } from "./QuizStatusBadge";
 import { useNavigate } from "react-router-dom";
-
-interface Quiz {
-  _id: string;
-  title: string;
-  author_id: number;
-  status: string;
-  duration: number;
-  rejection_reason?: string;
-}
+import type { QuizSummary } from "../../../api/quizzes/IQuizAPI";
 
 interface Props {
-  quizzes: Quiz[];
-  onReviewClick?: (quiz: Quiz) => void;
+  quizzes: QuizSummary[];
+  onReviewClick?: (quiz: QuizSummary) => void;
   onDeleteClick: (quizId: string, title: string) => void;
   showReviewButton?: boolean;
-  refreshData: () => void;
   mode?: "admin" | "moderator";
 }
 
@@ -37,34 +28,15 @@ export const QuizApprovalTable: React.FC<Props> = ({
       </div>
     );
 
-  const handleSendReport = async (quizId: string) => {
-    try {
-      const token = localStorage.getItem("access_token");
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/quizzes/${quizId}/report`,
-        {
-          method: "GET",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!res.ok) {
-        alert("Failed to generate report");
-        return;
-      }
-      alert("PDF report sent to your email!");
-    } catch {
-      alert("Error sending report");
-    }
-  };
-
   return (
     <div className="overflow-x-auto bg-white/80 backdrop-blur-sm rounded-2xl shadow-md border border-white/60 relative">
       <table className="w-full text-left align-middle">
         <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 text-sm text-gray-600 uppercase">
           <tr>
             <th className="px-6 py-3 w-1/4">Title</th>
-            <th className="px-6 py-3 w-1/6 text-center">Author ID</th>
-            <th className="px-6 py-3 w-1/6 text-center">Duration</th>
+            <th className="px-6 py-3 w-1/6 text-center">Author</th>
+            <th className="px-6 py-3 w-1/12 text-center">Questions</th>
+            <th className="px-6 py-3 w-1/12 text-center">Duration</th>
             <th className="px-6 py-3 w-1/6 text-center">Status</th>
             <th className="px-6 py-3 w-1/3 text-center">Actions</th>
           </tr>
@@ -83,7 +55,8 @@ export const QuizApprovalTable: React.FC<Props> = ({
                 {quiz.title}
               </td>
 
-              <td className="px-6 py-4 text-gray-600 text-center">{quiz.author_id}</td>
+              <td className="px-6 py-4 text-gray-600 text-center">{quiz.author_name}</td>
+              <td className="px-6 py-4 text-gray-600 text-center">{quiz.question_count}</td>
               <td className="px-6 py-4 text-gray-600 text-center">{quiz.duration}s</td>
               <td className="px-6 py-4 text-center">
                 <QuizStatusBadge status={quiz.status} />
@@ -91,39 +64,31 @@ export const QuizApprovalTable: React.FC<Props> = ({
 
               <td className="px-6 py-4">
                 <div className="flex justify-center items-center gap-3 flex-wrap">
-                  {mode === "moderator" && quiz.status === "REJECTED" && quiz.rejection_reason && (
+                  {mode === "moderator" && quiz.status === "REJECTED" && (
                     <>
                       <button
-                        onClick={() => setSelectedReason(quiz.rejection_reason!)}
+                        onClick={() => setSelectedReason(quiz.rejection_reason || "No reason provided")}
                         className="flex-1 min-w-[130px] px-4 py-2 text-sm rounded-lg bg-amber-500 text-white font-medium hover:bg-amber-600 transition"
                       >
-                        Review Rejection
+                        Review Rejection
                       </button>
                       <button
                         onClick={() => navigate(`/moderator/edit-quiz/${quiz._id}`)}
                         className="flex-1 min-w-[130px] px-4 py-2 text-sm rounded-lg bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition"
                       >
-                        Edit Quiz
+                        Edit Quiz
                       </button>
                     </>
                   )}
 
-                  {showReviewButton && (
+                  {/* Only quizzes waiting for approval can be reviewed */}
+                  {showReviewButton && quiz.status === "PENDING" && (
                     <button
                       onClick={() => onReviewClick?.(quiz)}
                       className="flex-1 min-w-[130px] px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-medium hover:scale-105 transition"
                     >
                       Review
                     </button>
-                  )}
-
-                  {mode !== "moderator" && (
-                  <button
-                    onClick={() => handleSendReport(quiz._id)}
-                    className="flex-1 min-w-[130px] px-4 py-2 text-sm rounded-lg bg-blue-500 text-white font-medium hover:bg-blue-600 transition"
-                  >
-                    Send Report
-                  </button>
                   )}
 
                   <button
@@ -143,7 +108,7 @@ export const QuizApprovalTable: React.FC<Props> = ({
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center">
             <h2 className="text-xl font-bold text-gray-800 mb-2">
-              Rejection Reason
+              Rejection Reason
             </h2>
             <p className="text-gray-700 mb-6 whitespace-pre-line">
               {selectedReason}

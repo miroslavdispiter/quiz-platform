@@ -1,15 +1,34 @@
 import React, { useState } from "react";
 import { QuestionList } from "./QuestionList";
 import type { QuestionData } from "../../types/moderator/QuestionData";
-import { quizAPI } from "../../api/quizzes/QuizAPI";
-import { getToken } from "../../services/authService";
+import type { QuizInput } from "../../api/quizzes/IQuizAPI";
+import { validateQuiz } from "../../types/validation/quizValidation";
 
-export const QuizForm: React.FC = () => {
-  const [title, setTitle] = useState("");
-  const [duration, setDuration] = useState(60);
-  const [questions, setQuestions] = useState<QuestionData[]>([
-    { text: "", options: ["", ""], correct_answers: [], points: 1 },
-  ]);
+const emptyQuestion = (): QuestionData => ({ text: "", options: ["", ""], correct_answers: [], points: 1 });
+
+interface QuizFormProps {
+  heading: string;
+  subheading: string;
+  submitLabel: string;
+  successMessage: string;
+  initialQuiz?: QuizInput;          // filled when editing an existing quiz
+  resetAfterSubmit?: boolean;       // clear the form after a successful submit (create)
+  onSubmit: (quiz: QuizInput) => Promise<void>;
+}
+
+/** Form used both for creating a new quiz and for editing a rejected quiz. */
+export const QuizForm: React.FC<QuizFormProps> = ({
+  heading,
+  subheading,
+  submitLabel,
+  successMessage,
+  initialQuiz,
+  resetAfterSubmit = false,
+  onSubmit,
+}) => {
+  const [title, setTitle] = useState(initialQuiz?.title ?? "");
+  const [duration, setDuration] = useState(initialQuiz?.duration ?? 60);
+  const [questions, setQuestions] = useState<QuestionData[]>(initialQuiz?.questions ?? [emptyQuestion()]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -18,7 +37,7 @@ export const QuizForm: React.FC = () => {
   };
 
   const handleAddQuestion = () => {
-    setQuestions([...questions, { text: "", options: ["", ""], correct_answers: [], points: 1 }]);
+    setQuestions([...questions, emptyQuestion()]);
   };
 
   const handleRemoveQuestion = (idx: number) => {
@@ -28,23 +47,27 @@ export const QuizForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
+
+    const quiz: QuizInput = { title, duration, questions };
+
+    // CLIENT-SIDE VALIDATION (the server validates again)
+    const error = validateQuiz(quiz);
+    if (error) {
+      setMessage(`❌ ${error}`);
+      return;
+    }
+
     setLoading(true);
-
     try {
-      const payload = {
-        title,
-        duration,
-        author_id: getToken() ? JSON.parse(atob(getToken()!.split('.')[1])).sub : 0,
-        questions,
-      };
-
-      const res = await quizAPI.createQuiz(payload);
-      setMessage(`✅ Quiz created! ID: ${res.id}`);
-      setTitle("");
-      setQuestions([{ text: "", options: ["", ""], correct_answers: [], points: 1 }]);
-    } catch (err: any) {
-      console.error(err);
-      setMessage(`❌ ${err.message}`);
+      await onSubmit(quiz);
+      setMessage(`✅ ${successMessage}`);
+      if (resetAfterSubmit) {
+        setTitle("");
+        setDuration(60);
+        setQuestions([emptyQuestion()]);
+      }
+    } catch (err) {
+      setMessage(`❌ ${err instanceof Error ? err.message : "Something went wrong"}`);
     } finally {
       setLoading(false);
     }
@@ -54,9 +77,9 @@ export const QuizForm: React.FC = () => {
     <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-xl border border-white/50">
       <div className="mb-6 text-center">
         <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-indigo-600">
-          Create New Quiz
+          {heading}
         </h1>
-        <p className="text-gray-500 mt-1">Fill in quiz details and questions</p>
+        <p className="text-gray-500 mt-1">{subheading}</p>
       </div>
 
       {message && (
@@ -84,7 +107,7 @@ export const QuizForm: React.FC = () => {
         <input
           type="number"
           value={duration}
-          onChange={(e) => setDuration(parseInt(e.target.value))}
+          onChange={(e) => setDuration(Number(e.target.value))}
           className="w-40 border-b-2 border-indigo-200 focus:border-indigo-500 outline-none px-3 py-2"
           min={10}
           required
@@ -104,7 +127,7 @@ export const QuizForm: React.FC = () => {
           disabled={loading}
           className="px-6 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 text-white font-semibold hover:scale-[1.02] transition-all disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
         >
-          {loading ? "Saving..." : "Submit Quiz"}
+          {loading ? "Saving..." : submitLabel}
         </button>
       </div>
     </form>

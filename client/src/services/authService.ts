@@ -1,3 +1,5 @@
+import { socketService } from "./socketService";
+
 // --------------------
 // TOKEN HELPERS
 // --------------------
@@ -12,4 +14,5 @@ export const isAuthenticated = (): boolean => {
 
 export const logout = (): void => {
   localStorage.removeItem("access_token");
+  socketService.disconnect();
 };
