@@ -4,14 +4,10 @@ from app.config import Config
 
 
 def check_internal_key():
-    """
-    Runs before EVERY request (app.before_request).
-    Only the main server knows INTERNAL_API_KEY, so the client (browser)
-    can never call the Quiz Service directly.
-    """
+
     key = request.headers.get("X-Internal-Key")
     if not Config.INTERNAL_API_KEY or key != Config.INTERNAL_API_KEY:
-        return jsonify({"error": "Access allowed only for the main server"}), 401
+        return jsonify({"error": "Access not allowed"}), 401
 
 
 def get_current_user() -> dict:

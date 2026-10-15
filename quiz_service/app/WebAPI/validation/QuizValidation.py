@@ -16,7 +16,6 @@ class QuizValidation:
 
     @staticmethod
     def _is_int(value) -> bool:
-        # bool is also an int in Python, so we exclude it explicitly
         return isinstance(value, int) and not isinstance(value, bool)
 
     @staticmethod
@@ -55,7 +54,7 @@ class QuizValidation:
             if error:
                 return f"Question {number}: {error}"
 
-        # AUTHOR (added by the main server from the logged-in user)
+        # AUTHOR
         if not QuizValidation._is_text(data.get("author_name")):
             return "Author name is missing"
 

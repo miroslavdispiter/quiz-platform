@@ -1,0 +1,10 @@
+# Starts only Redis (cache for the Quiz Service).
+# Start:  docker compose up -d
+# Stop:   docker compose down
+services:
+  redis:
+    image: redis:7
+    container_name: quiz-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped

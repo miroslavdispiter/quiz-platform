@@ -11,8 +11,12 @@ class Config:
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
     DB_NAME = os.getenv("DB_NAME", "quiz_db")
 
-    # Secret shared with the main server - only the main server can call this service
+    # Secret shared with the main server
     INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "")
+
+    # Redis cache
+    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", 300))
 
     # Simulates a long quiz processing (in seconds)
     PROCESSING_DELAY_SECONDS = int(os.getenv("PROCESSING_DELAY_SECONDS", 10))

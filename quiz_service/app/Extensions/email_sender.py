@@ -7,7 +7,7 @@ from app.config import Config
 class EmailSender:
 
     def send_quiz_result_email(self, to_email, full_name, quiz_title, score, max_score, time_spent) -> bool:
-        """Sends the player the result of a processed quiz. Returns True if the mail was sent."""
+        """Sends the player the result of a quiz. Returns True if the mail was sent."""
         if not Config.EMAIL_USER or not Config.EMAIL_PASS:
             print("Email is not configured (EMAIL_USER / EMAIL_PASS in .env) - mail is not sent.")
             return False

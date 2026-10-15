@@ -3,6 +3,7 @@ from app.config import Config
 from app.Database.QuizRepository import QuizRepository
 from app.Database.ResultRepository import ResultRepository
 from app.Extensions.email_sender import EmailSender
+from app.Extensions.cache import cache, leaderboard_key
 
 
 def process_result(result_id: str):
@@ -33,6 +34,8 @@ def process_result(result_id: str):
     result_repo.mark_done(result_id, score, correct_count)
     print(f"[process] Result {result_id}: {score}/{result['max_score']} points.")
 
+    cache.delete(leaderboard_key(result["quiz_id"]))
+
     if result.get("user_email"):
         try:
             sent = EmailSender().send_quiz_result_email(
@@ -52,8 +55,6 @@ def process_result(result_id: str):
 def calculate_score(questions, answers):
     """
     A question brings its points only if the player selected EXACTLY all correct answers
-    (nothing missing and nothing extra).
-    answers = [{"question_index": 0, "selected": ["Beograd"]}, ...]
     """
     selected_by_question = {a["question_index"]: a["selected"] for a in answers}
 

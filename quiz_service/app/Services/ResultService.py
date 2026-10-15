@@ -8,6 +8,7 @@ from app.Domain.DTOs.SubmitResponseDTO import SubmitResponseDTO
 from app.Domain.enums.quiz_status import QuizStatus
 from app.Domain.enums.result_status import ResultStatus
 from app.Services.quiz_processing import process_result
+from app.Extensions.cache import cache, leaderboard_key
 
 
 class ResultService:
@@ -55,11 +56,18 @@ class ResultService:
         )
         return asdict(response), 202
 
-    # LEADERBOARD FOR ONE QUIZ
+    # LEADERBOARD FOR ONE QUIZ - read from the cache when possible
     def get_leaderboard(self, quiz_id):
+        cached = cache.get(leaderboard_key(quiz_id))
+        if cached is not None:
+            return cached, 200
+
         quiz = self.quiz_repo.get_by_id(quiz_id)
         if not quiz:
             return {"error": "Quiz not found"}, 404
 
         results = self.result_repo.get_leaderboard(quiz_id)
-        return [asdict(LeaderboardEntryDTO.from_document(r)) for r in results], 200
+        leaderboard = [asdict(LeaderboardEntryDTO.from_document(r)) for r in results]
+
+        cache.set(leaderboard_key(quiz_id), leaderboard)
+        return leaderboard, 200

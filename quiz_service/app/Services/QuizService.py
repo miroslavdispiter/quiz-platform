@@ -6,6 +6,7 @@ from app.Domain.DTOs.QuizDTO import QuizDTO
 from app.Domain.DTOs.QuizSummaryDTO import QuizSummaryDTO
 from app.Domain.enums.quiz_status import QuizStatus
 from app.Domain.enums.role import Role
+from app.Extensions.cache import cache, PUBLISHED_QUIZZES_KEY, leaderboard_key
 
 
 class QuizService:
@@ -49,6 +50,8 @@ class QuizService:
             "rejection_reason": None,
         })
 
+        cache.delete(PUBLISHED_QUIZZES_KEY)
+
         updated = self.quiz_repo.get_by_id(quiz_id)
         return asdict(QuizDTO.from_document(updated)), 200
 
@@ -63,6 +66,8 @@ class QuizService:
 
         self.quiz_repo.delete(quiz_id)
         self.result_repo.delete_by_quiz(quiz_id)
+
+        cache.delete(PUBLISHED_QUIZZES_KEY, leaderboard_key(quiz_id))
         return {"_id": quiz_id, "title": quiz["title"], "message": "Quiz deleted"}, 200
 
     # ALL QUIZZES (admin)
@@ -75,12 +80,19 @@ class QuizService:
         quizzes = self.quiz_repo.get_by_author(user["id"])
         return [asdict(QuizSummaryDTO.from_document(q)) for q in quizzes], 200
 
-    # APPROVED QUIZZES (players)
+    # APPROVED QUIZZES (players) - read from the cache when possible
     def get_published_quizzes(self):
-        quizzes = self.quiz_repo.get_by_status(QuizStatus.APPROVED.value)
-        return [asdict(QuizSummaryDTO.from_document(q)) for q in quizzes], 200
+        cached = cache.get(PUBLISHED_QUIZZES_KEY)
+        if cached is not None:
+            return cached, 200
 
-    # ONE QUIZ - what is shown depends on the role
+        quizzes = self.quiz_repo.get_by_status(QuizStatus.APPROVED.value)
+        result = [asdict(QuizSummaryDTO.from_document(q)) for q in quizzes]
+
+        cache.set(PUBLISHED_QUIZZES_KEY, result)
+        return result, 200
+
+    # ONE QUIZ
     def get_quiz(self, quiz_id, user):
         quiz = self.quiz_repo.get_by_id(quiz_id)
         if not quiz:
@@ -113,6 +125,8 @@ class QuizService:
         reason = data["rejection_reason"].strip() if status == QuizStatus.REJECTED.value else None
 
         self.quiz_repo.update(quiz_id, {"status": status, "rejection_reason": reason})
+
+        cache.delete(PUBLISHED_QUIZZES_KEY)
 
         updated = self.quiz_repo.get_by_id(quiz_id)
         return asdict(QuizDTO.from_document(updated)), 200
